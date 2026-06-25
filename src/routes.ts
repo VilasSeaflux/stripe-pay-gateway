@@ -1,6 +1,5 @@
 import { withRoutes } from "@helpers";
 import { miscRoutes } from "@modules/misc";
-import { userRoutes } from "@modules/user";
 import { Router } from "express";
 
 const routes = (app: Router) => {
@@ -10,7 +9,6 @@ const routes = (app: Router) => {
 
   // Register all routes here
   app.use("/misc", miscRoutes);
-  app.use("/users", userRoutes);
 
   // Handle 404
   app.all("/*splat", (_, res) => {

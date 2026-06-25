@@ -31,4 +31,295 @@
         </rollback>
     </changeSet>
 
+        <changeSet id="001-create-enums" author="vilas">
+        <sql>
+            CREATE TYPE order_status AS ENUM (
+                'PENDING',
+                'PROCESSING',
+                'SUCCEEDED',
+                'FAILED',
+                'REFUNDED',
+                'PARTIALLY_REFUNDED',
+                'CANCELED'
+            );
+        </sql>
+
+        <sql>
+            CREATE TYPE stripe_event_status AS ENUM (
+                'PENDING',
+                'PROCESSED',
+                'FAILED',
+                'IGNORED'
+            );
+        </sql>
+
+        <sql>
+            CREATE TYPE subscription_status AS ENUM (
+                'INCOMPLETE',
+                'INCOMPLETE_EXPIRED',
+                'TRIALING',
+                'ACTIVE',
+                'PAST_DUE',
+                'CANCELED',
+                'UNPAID',
+                'PAUSED'
+            );
+        </sql>
+    </changeSet>
+
+    <changeSet id="002-create-customers" author="vilas">
+
+        <createTable tableName="customers">
+            <column name="id" type="varchar(30)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+
+            <column name="email" type="varchar(255)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+
+            <column name="stripe_customer_id" type="varchar(255)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+
+            <column name="name" type="varchar(255)"/>
+
+            <column name="created_at" type="timestamptz"
+                    defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="updated_at" type="timestamptz"
+                    defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex
+                tableName="customers"
+                indexName="idx_customers_stripe_customer_id">
+            <column name="stripe_customer_id"/>
+        </createIndex>
+
+    </changeSet>
+
+    <changeSet id="003-create-orders" author="vilas">
+
+        <createTable tableName="orders">
+
+            <column name="id" type="varchar(30)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+
+            <column name="customer_id" type="varchar(30)">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="amount_in_cents" type="integer">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="currency" type="varchar(10)"
+                    defaultValue="usd">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="status" type="order_status"
+                    defaultValue="PENDING">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="description" type="text"/>
+
+            <column name="stripe_payment_intent_id" type="varchar(255)"/>
+
+            <column name="stripe_charge_id" type="varchar(255)"/>
+
+            <column name="receipt_url" type="text"/>
+
+            <column name="idempotency_key" type="varchar(255)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+
+            <column name="metadata" type="jsonb"/>
+
+            <column name="created_at" type="timestamptz"
+                    defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="updated_at" type="timestamptz"
+                    defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+
+        </createTable>
+
+        <addForeignKeyConstraint
+                constraintName="fk_orders_customer"
+                baseTableName="orders"
+                baseColumnNames="customer_id"
+                referencedTableName="customers"
+                referencedColumnNames="id"/>
+
+        <addUniqueConstraint
+                tableName="orders"
+                columnNames="stripe_payment_intent_id"
+                constraintName="uk_orders_payment_intent"/>
+
+        <createIndex
+                tableName="orders"
+                indexName="idx_orders_customer_id">
+            <column name="customer_id"/>
+        </createIndex>
+
+        <createIndex
+                tableName="orders"
+                indexName="idx_orders_status">
+            <column name="status"/>
+        </createIndex>
+
+        <createIndex
+                tableName="orders"
+                indexName="idx_orders_payment_intent">
+            <column name="stripe_payment_intent_id"/>
+        </createIndex>
+
+    </changeSet>
+
+    <changeSet id="004-create-stripe-events" author="vilas">
+
+        <createTable tableName="stripe_events">
+
+            <column name="id" type="varchar(255)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+
+            <column name="type" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="status" type="stripe_event_status"
+                    defaultValue="PENDING">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="payload" type="jsonb">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="error" type="text"/>
+
+            <column name="processed_at" type="timestamptz"/>
+
+            <column name="created_at" type="timestamptz"
+                    defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+
+        </createTable>
+
+        <createIndex
+                tableName="stripe_events"
+                indexName="idx_stripe_events_type">
+            <column name="type"/>
+        </createIndex>
+
+        <createIndex
+                tableName="stripe_events"
+                indexName="idx_stripe_events_status">
+            <column name="status"/>
+        </createIndex>
+
+    </changeSet>
+
+    <changeSet id="005-create-subscriptions" author="vilas">
+
+        <createTable tableName="subscriptions">
+
+            <column name="id" type="varchar(30)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+
+            <column name="customer_id" type="varchar(30)">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="stripe_subscription_id" type="varchar(255)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+
+            <column name="stripe_price_id" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="stripe_product_id" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="status" type="subscription_status">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="current_period_start" type="timestamptz">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="current_period_end" type="timestamptz">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="cancel_at_period_end"
+                    type="boolean"
+                    defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="canceled_at" type="timestamptz"/>
+
+            <column name="trial_start" type="timestamptz"/>
+
+            <column name="trial_end" type="timestamptz"/>
+
+            <column name="metadata" type="jsonb"/>
+
+            <column name="created_at" type="timestamptz"
+                    defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="updated_at" type="timestamptz"
+                    defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+
+        </createTable>
+
+        <addForeignKeyConstraint
+                constraintName="fk_subscriptions_customer"
+                baseTableName="subscriptions"
+                baseColumnNames="customer_id"
+                referencedTableName="customers"
+                referencedColumnNames="id"/>
+
+        <createIndex
+                tableName="subscriptions"
+                indexName="idx_subscriptions_customer_id">
+            <column name="customer_id"/>
+        </createIndex>
+
+        <createIndex
+                tableName="subscriptions"
+                indexName="idx_subscriptions_status">
+            <column name="status"/>
+        </createIndex>
+
+        <createIndex
+                tableName="subscriptions"
+                indexName="idx_subscriptions_stripe_subscription">
+            <column name="stripe_subscription_id"/>
+        </createIndex>
+
+    </changeSet>                                        
+
 </databaseChangeLog>

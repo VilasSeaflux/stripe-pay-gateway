@@ -16,6 +16,10 @@ const envSchema = z.object({
     .string()
     .min(1)
     .refine(value => Constants.ENVIRONMENTS.includes(value)),
+  stripeSecretKey: z.string().startsWith("sk_"),
+  stripeWebhookSecret: z.string().startsWith("whsec_"),
+  databaseUrl: z.string().url(),
+  appBaseUrl: z.string().url(),
 });
 
 // ✅ Define the type
@@ -31,6 +35,8 @@ export function envValidator(): EnvSchema {
     dbPassword: process.env.DB_PASSWORD!,
     dbSchema: process.env.DB_SCHEMA!,
     nodeEnv: process.env.NODE_ENV!,
+    stripeSecretKey: process.env.STRIPE_SECRET_KEY!,
+    stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET!,
   });
 
   if (result.success) {

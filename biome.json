@@ -87,13 +87,16 @@
             "conventions": [
               {
                 "selector": { "kind": "function" },
-                "formats": ["camelCase", "PascalCase"]
+                "formats": ["camelCase", "PascalCase", "CONSTANT_CASE"]
               },
               {
                 "selector": { "kind": "variable" },
                 "formats": ["camelCase", "PascalCase", "CONSTANT_CASE"]
               },
-              { "selector": { "kind": "typeLike" }, "formats": ["PascalCase"] }
+              {
+                "selector": { "kind": "typeLike" },
+                "formats": ["PascalCase", "CONSTANT_CASE"]
+              }
             ]
           }
         },

@@ -1,15 +1,15 @@
 services:
   postgres:
     image: postgres:latest
-    container_name: postgres-etst
+    container_name: postgres-be
     environment:
-      POSTGRES_DB: mydatabase
-      POSTGRES_USER: myuser
-      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: backend-concepts
+      POSTGRES_USER: vilas
+      POSTGRES_PASSWORD: vilas@123
     ports:
-      - "5433:5432"
+      - "5434:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
       - ./backup.sql:/backup.sql
       
 volumes:
